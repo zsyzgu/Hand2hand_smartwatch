@@ -6,6 +6,7 @@ import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.File;
@@ -17,16 +18,18 @@ import java.util.logging.Logger;
 
 public class MainActivity extends WearableActivity {
     // ui
-    TextView uText0;
-    TextView uText1;
-    TextView uText2;
-    Button uButtonLog;
+    TextView uText0, uText1, uText2;
+    Button uButtonLog, uButtonConnect;
+    EditText uEditIP;
 
-    // system
+    // log
     long startTime;
     File fileDirectory;
     PrintWriter logger;
     boolean isLogging;
+
+    // network
+    Network network;
 
     // microphone
     MicrophoneThread microphoneThread;
@@ -44,11 +47,20 @@ public class MainActivity extends WearableActivity {
         uText1 = findViewById(R.id.text1);
         uText2 = findViewById(R.id.text2);
         uButtonLog = findViewById(R.id.button_log);
+        uButtonConnect = findViewById(R.id.button_connect);
+        uEditIP = findViewById(R.id.editIP);
 
         uButtonLog.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                changeLogStatus();
+                changeLogStatus(0);
+            }
+        });
+
+        uButtonConnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                network.Connect(uEditIP.getText().toString());
             }
         });
 
@@ -60,6 +72,7 @@ public class MainActivity extends WearableActivity {
         onCreateInertial();
 
         startTime = System.currentTimeMillis();
+        network = new Network(this);
     }
 
     void onCreateLogger() {
@@ -111,12 +124,12 @@ public class MainActivity extends WearableActivity {
 
     void showFrequency() {
         double runTime = (System.currentTimeMillis() - startTime) / 1000.0;
-        uText0.setText(String.format("fIne: %.3f Hz", inertialSensor.counter / runTime));
-        uText1.setText(String.format("fMic: %.3f Hz", microphoneThread.counter / runTime));
+        uText0.setText(String.format("Inertial: %.3f Hz", inertialSensor.counter / runTime));
+        uText1.setText(String.format("Microphone: %.3f Hz", microphoneThread.counter / runTime));
     }
 
-    void changeLogStatus() {
-        if (isLogging == true) {
+    void changeLogStatus(int v) {
+        if (v == 0 && isLogging == true || v == 1) {
             isLogging = false;
             uButtonLog.setText("LOG/OFF");
         } else {

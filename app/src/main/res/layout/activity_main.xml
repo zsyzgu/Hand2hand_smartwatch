@@ -19,28 +19,54 @@
             android:id="@+id/text0"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/hello_world" />
+            android:layout_marginTop="0dp"
+            android:text="@string/hello_world"
+            android:textSize="10sp" />
 
         <TextView
             android:id="@+id/text1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
-            android:text="TextView" />
+            android:layout_marginTop="15dp"
+            android:text="TextView"
+            android:textSize="10sp" />
 
         <TextView
             android:id="@+id/text2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="60dp"
-            android:text="TextView" />
+            android:layout_marginTop="30dp"
+            android:text="TextView"
+            android:textSize="10sp" />
 
         <Button
             android:id="@+id/button_log"
+            android:layout_width="66dp"
+            android:layout_height="37dp"
+            android:layout_marginLeft="0dp"
+            android:layout_marginTop="90dp"
+            android:text="LOG/OFF"
+            android:textSize="8sp" />
+
+        <Button
+            android:id="@+id/button_connect"
+            android:layout_width="66dp"
+            android:layout_height="37dp"
+            android:layout_marginLeft="70dp"
+            android:layout_marginTop="90dp"
+            android:width="50dp"
+            android:text="CONNECT"
+            android:textSize="8sp" />
+
+        <EditText
+            android:id="@+id/editIP"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="90dp"
-            android:text="LOG/OFF" />
+            android:layout_marginTop="60dp"
+            android:ems="10"
+            android:inputType="textPersonName"
+            android:text="166.111.139.143"
+            android:textSize="10sp" />
 
     </FrameLayout>
 </android.support.wear.widget.BoxInsetLayout>

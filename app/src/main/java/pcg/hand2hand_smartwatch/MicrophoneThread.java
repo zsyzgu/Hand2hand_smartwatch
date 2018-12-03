@@ -46,7 +46,6 @@ public class MicrophoneThread extends Thread {
             while (isRun) {
                 counter++;
                 int readSize = audioRecord.read(buffer, 0, bufferSize);
-                Log.d("xxx", readSize + "");
                 if (readSize != bufferSize) {
                     Log.d("microphone", "buff: " + bufferSize + ", read: " + readSize);
                 } else {
