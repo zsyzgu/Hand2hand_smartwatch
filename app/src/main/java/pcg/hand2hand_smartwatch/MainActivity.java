@@ -17,6 +17,8 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 public class MainActivity extends WearableActivity {
+    final boolean ENABLE_MICROPHONE = false;
+
     // ui
     TextView uText0, uText1, uText2;
     Button uButtonLog, uButtonConnect;
@@ -26,13 +28,14 @@ public class MainActivity extends WearableActivity {
     long startTime;
     File fileDirectory;
     PrintWriter logger;
+    String logBuffer;
     boolean isLogging;
 
     // network
     Network network;
 
     // microphone
-    MicrophoneThread microphoneThread;
+    Microphone microphone;
 
     // inertial
     SensorManager sensorManager;
@@ -77,18 +80,13 @@ public class MainActivity extends WearableActivity {
 
     void onCreateLogger() {
         fileDirectory = this.getApplicationContext().getExternalFilesDir(null);
-        try {
-            String fileName = "log_" + new SimpleDateFormat("yy-MM-dd_HH-mm-ss").format(new Date()) + ".txt";
-            logger = new PrintWriter(new FileOutputStream(fileDirectory + "/" + fileName));
-            isLogging = false;
-        } catch (Exception e) {
-            Log.d("file", e.toString());
-        }
+        logBuffer = "";
+        isLogging = false;
     }
 
     void onCreateMicrophone() {
-        microphoneThread = new MicrophoneThread(this);
-        microphoneThread.start();
+        microphone = new Microphone(this);
+        if (ENABLE_MICROPHONE) microphone.start();
     }
 
     void onCreateInertial() {
@@ -98,43 +96,123 @@ public class MainActivity extends WearableActivity {
 
     void logToFile(String tag, Object... param) {
         if (!isLogging) return;
-        logger.write(tag);
-        switch (tag) {
-            case "linearaccelerometer":
-            case "gyroscope":
-            case "megneticfield":
-            case "gravity":
-                float[] values0 = (float[]) param[0];
-                for (float value : values0) {
-                    logger.write(" " + value);
-                }
-                break;
-            case "microphone":
-                byte[] values1 = (byte[]) param[0];
-                for (byte value : values1) {
-                    logger.write(" "  + value);
-                }
-                break;
-            case "time":
-                logger.write(" " + System.currentTimeMillis());
-                break;
+        synchronized (logBuffer) {
+            logBuffer += tag;
+            switch (tag) {
+                case "acc":
+                case "gyr":
+                case "gra":
+                    float[] values0 = (float[]) param[0];
+                    logBuffer += String.format(" %.5f %.5f %.5f", values0[0], values0[1], values0[2]);
+                    break;
+                case "meg":float[] values1 = (float[]) param[0];
+                    logBuffer += String.format(" %.1f %.1f %.1f", values1[0], values1[1], values1[2]);
+                    break;
+                case "mic":
+                    byte[] values2 = (byte[]) param[0];
+                    for (byte value : values2) {
+                        logBuffer += " " + value;
+                        break;
+                    }
+                    break;
+                case "time":
+                    logBuffer += " " + System.currentTimeMillis();
+                    break;
+            }
+            logBuffer += "\n";
+            if (logBuffer.length() > 1024) {
+                logger.write(logBuffer);
+                logger.flush();
+                logBuffer = "";
+            }
         }
-        logger.write("\n");
+    }
+
+    void logToFile() {
+        if (!isLogging) return;
+        logBuffer += "time " + System.currentTimeMillis() + "\n";
+        synchronized (inertialSensor.listLinearAccelerometer) {
+            for (float[] values : inertialSensor.listLinearAccelerometer) logBuffer += String.format("acc %.5f %.5f %.5f\n", values[0], values[1], values[2]);
+            inertialSensor.listLinearAccelerometer.clear();
+        }
+        synchronized (inertialSensor.listGyroscope) {
+            for (float[] values : inertialSensor.listGyroscope) logBuffer += String.format("gyr %.5f %.5f %.5f\n", values[0], values[1], values[2]);
+            inertialSensor.listGyroscope.clear();
+        }
+        synchronized (inertialSensor.listMegneticField) {
+            for (float[] values : inertialSensor.listMegneticField) logBuffer += String.format("meg %.2f %.2f %.2f\n", values[0], values[1], values[2]);
+            inertialSensor.listMegneticField.clear();
+        }
+        synchronized (inertialSensor.listGravity) {
+            for (float[] values : inertialSensor.listGravity) logBuffer += String.format("gra %.5f %.5f %.5f\n", values[0], values[1], values[2]);
+            inertialSensor.listGravity.clear();
+        }
+        /*synchronized (microphone.buffer) {
+            logBuffer += "mic";
+            for (byte value: microphone.buffer) logBuffer += " " + value;
+            logBuffer += "\n";
+        }*/
+        if (logBuffer.length() > 1024) {
+            logger.write(logBuffer);
+            logger.flush();
+            logBuffer = "";
+        }
+    }
+
+    void logToFile2() {
+        if (!isLogging) return;
+        logBuffer += "time " + System.currentTimeMillis() + "\n";
+        synchronized (inertialSensor.dataLinearAccelerometer) {
+            float[] values = inertialSensor.dataLinearAccelerometer;
+            logBuffer += String.format("acc %.5f %.5f %.5f\n", values[0], values[1], values[2]);
+        }
+        synchronized (inertialSensor.dataGyroscope) {
+            float[] values = inertialSensor.dataGyroscope;
+            logBuffer += String.format("gyr %.5f %.5f %.5f\n", values[0], values[1], values[2]);
+        }
+        synchronized (inertialSensor.dataMegneticField) {
+            float[] values = inertialSensor.dataMegneticField;
+            logBuffer += String.format("meg %.2f %.2f %.2f\n", values[0], values[1], values[2]);
+        }
+        synchronized (inertialSensor.dataGravity) {
+            float[] values = inertialSensor.dataGravity;
+            logBuffer += String.format("gra %.5f %.5f %.5f\n", values[0], values[1], values[2]);
+        }
+        if (logBuffer.length() > 1024) {
+            logger.write(logBuffer);
+            logger.flush();
+            logBuffer = "";
+        }
     }
 
     void showFrequency() {
         double runTime = (System.currentTimeMillis() - startTime) / 1000.0;
         uText0.setText(String.format("Inertial: %.3f Hz", inertialSensor.counter / runTime));
-        uText1.setText(String.format("Microphone: %.3f Hz", microphoneThread.counter / runTime));
+        uText1.setText(String.format("Microphone: %.3f Hz", microphone.counter / runTime));
     }
 
     void changeLogStatus(int v) {
+        // v == 0 : change
+        // v == 1 : off
+        // v == 2 : on
         if (v == 0 && isLogging == true || v == 1) {
-            isLogging = false;
-            uButtonLog.setText("LOG/OFF");
+            if (isLogging) {
+                if (logger != null) logger.close();
+                isLogging = false;
+                uButtonLog.setText("LOG/OFF");
+            }
         } else {
-            isLogging = true;
-            uButtonLog.setText("LOG/ON");
+            if (!isLogging) {
+                try {
+                    String fileName = "log_" + new SimpleDateFormat("yy-MM-dd_HH-mm-ss").format(new Date()) + ".txt";
+                    logger = new PrintWriter(new FileOutputStream(fileDirectory + "/" + fileName));
+                    logBuffer = "";
+                    isLogging = true;
+                    uButtonLog.setText("LOG/ON");
+                } catch (Exception e) {
+                    Log.d("file", e.toString());
+                }
+            }
         }
     }
 }

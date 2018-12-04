@@ -7,7 +7,7 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
-public class MicrophoneThread extends Thread {
+public class Microphone extends Thread {
     final static int SAMPLE_RATE_IN_HZ = 44100;
     final static int CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO;
     final static int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
@@ -18,10 +18,11 @@ public class MicrophoneThread extends Thread {
     AudioRecord audioRecord;
     byte[] buffer;
     int bufferSize;
+    public boolean bufferUpdated;
     boolean isRun;
     //AudioManager audioManager;
 
-    public MicrophoneThread(MainActivity father) {
+    public Microphone(MainActivity father) {
         super();
         this.father = father;
         counter = 0;
@@ -30,6 +31,7 @@ public class MicrophoneThread extends Thread {
         bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE_IN_HZ, CHANNEL_CONFIG, AUDIO_FORMAT);
         audioRecord = new AudioRecord(MediaRecorder.getAudioSourceMax(), SAMPLE_RATE_IN_HZ, CHANNEL_CONFIG, AUDIO_FORMAT, bufferSize);
         buffer = new byte[bufferSize];
+        bufferUpdated = false;
         isRun = false;
 
         // audio manager
@@ -45,13 +47,15 @@ public class MicrophoneThread extends Thread {
             isRun = true;
             while (isRun) {
                 counter++;
-                int readSize = audioRecord.read(buffer, 0, bufferSize);
+                int readSize = -1;
+                synchronized (buffer) {
+                    readSize = audioRecord.read(buffer, 0, bufferSize);
+                }
                 if (readSize != bufferSize) {
                     Log.d("microphone", "buff: " + bufferSize + ", read: " + readSize);
-                } else {
-                    father.logToFile("time");
-                    father.logToFile("microphone", buffer);
                 }
+                //father.logToFile("mic", buffer);
+                father.logToFile();
             }
             audioRecord.stop();
         } catch (Exception e) {
